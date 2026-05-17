@@ -13,22 +13,34 @@ public static class SmsSegmenter
         if (string.IsNullOrWhiteSpace(message)) return 0;
         var words = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return 0;
-        return MinSegmentsFrom(words, 0);
-    }
 
-    private static int MinSegmentsFrom(string[] words, int start)
-    {
-        if (start >= words.Length) return 0;
-        int best = int.MaxValue;
-        int currentLen = 0;
-        for (int end = start; end < words.Length; end++)
+        var n = words.Length;
+        var dp = new int[n + 1];
+        for (int i = 0; i <= n; i++) dp[i] = int.MaxValue;
+        dp[n] = 0;
+
+        for (int i = n - 1; i >= 0; i--)
         {
-            int add = currentLen == 0 ? words[end].Length : words[end].Length + 1;
-            if (currentLen + add > MaxSegmentChars) break;
-            currentLen += add;
-            int rest = MinSegmentsFrom(words, end + 1);
-            if (rest + 1 < best) best = rest + 1;
+            int currentLen = 0;
+            for (int j = i; j < n; j++)
+            {
+                var wordLen = words[j].Length;
+                if (wordLen > MaxSegmentChars)
+                {
+                    currentLen = int.MaxValue;
+                    break;
+                }
+
+                currentLen = currentLen == 0 ? wordLen : currentLen + 1 + wordLen;
+                if (currentLen > MaxSegmentChars) break;
+
+                if (dp[j + 1] != int.MaxValue)
+                {
+                    dp[i] = Math.Min(dp[i], dp[j + 1] + 1);
+                }
+            }
         }
-        return best == int.MaxValue ? 0 : best;
+
+        return dp[0] == int.MaxValue ? 0 : dp[0];
     }
 }
