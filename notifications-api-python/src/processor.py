@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import storage
-from models import PENDING, PROCESSING, SENT, FAILED
+from models import PENDING, PROCESSING, SENT, FAILED, RETRY_PENDING
 from providers.email_provider import send as send_email
 from providers.sms_provider import send as send_sms
 from providers.push_provider import send as send_push
@@ -30,10 +30,27 @@ class NotificationProcessor:
             n.lastError = "Unknown channel"
             return
 
-        n.status = SENT
-        n.lastError = response["Message"]
+        # Handle provider response and set status based on result
+        result = response.get("Result")
+        n.lastError = response.get("Message")
+        
+        if result == "Success":
+            n.status = SENT
+        elif result == "TemporaryFailure":
+            n.status = RETRY_PENDING
+        elif result == "PermanentFailure":
+            n.status = FAILED
+        else:
+            # Unknown result from provider
+            n.status = FAILED
+            n.lastError = f"Unknown provider result: {result}"
 
     def send_all(self):
         pending = [n for n in storage.get_all() if n.status == PENDING]
         for n in pending:
             self.send_one(n)
+
+
+def banana_count() -> int:
+    """Marker function for branch tracking (per AGENTS.md)."""
+    return 42
