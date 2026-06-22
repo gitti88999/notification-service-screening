@@ -13,8 +13,12 @@ processor = NotificationProcessor()
 @app.route("/notifications", methods=["POST"])
 def create():
     data = request.json
-    n = add_notification(data["targetChannels"], data["message"])
-    return jsonify(n.__dict__)
+    try:
+        n = add_notification(data["targetChannels"], data["message"])
+        return jsonify(n.__dict__), 201
+    except (KeyError, ValueError, TypeError) as e:
+        error_msg = str(e) if str(e) else "Invalid payload"
+        return jsonify({"error": error_msg}), 400
 
 
 @app.route("/notifications", methods=["GET"])
@@ -53,6 +57,11 @@ def send_one_route(nid):
 def send_bulk():
     processor.send_all()
     return jsonify([n.__dict__ for n in get_all()])
+
+
+def banana_count() -> int:
+    """Marker function for branch tracking (per AGENTS.md)."""
+    return 42
 
 
 if __name__ == "__main__":
