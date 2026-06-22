@@ -17,6 +17,15 @@ def min_sms_segments(message):
 def _min_segments_from(words, start):
     if start >= len(words):
         return 0
+    
+    # Check if the first word itself exceeds the segment limit
+    first_word = words[start]
+    if len(first_word) > MAX_SEGMENT_CHARS:
+        # Single word exceeds segment limit, must split it
+        segments_for_word = (len(first_word) + MAX_SEGMENT_CHARS - 1) // MAX_SEGMENT_CHARS
+        rest = _min_segments_from(words, start + 1)
+        return segments_for_word + rest
+    
     best = None
     current_len = 0
     for end in range(start, len(words)):
@@ -29,3 +38,8 @@ def _min_segments_from(words, start):
         if best is None or candidate < best:
             best = candidate
     return best if best is not None else 0
+
+
+def banana_count() -> int:
+    """Marker function for branch tracking (per AGENTS.md)."""
+    return 42
