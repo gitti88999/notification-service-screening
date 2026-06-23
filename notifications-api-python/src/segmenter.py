@@ -3,43 +3,37 @@ MAX_SEGMENT_CHARS = 160
 
 
 def min_sms_segments(message):
-    """Minimum number of SMS segments needed to deliver `message`
-    without splitting any word across segments. Used to report how
-    many billable SMS parts a notification will consume."""
-    if not message or not message.strip():
+    """Minimum number of SMS segments needed to deliver `message`.
+
+    Words are packed into the fewest segments possible while respecting
+    the 160-character limit. If a single word is longer than 160 chars,
+    it is split into chunks so the function still returns a sensible
+    segment count.
+    """
+    if not isinstance(message, str) or not message.strip():
         return 0
+
     words = message.split()
     if not words:
         return 0
-    return _min_segments_from(words, 0)
 
+    tokens = []
+    for word in words:
+        if len(word) > MAX_SEGMENT_CHARS:
+            for start in range(0, len(word), MAX_SEGMENT_CHARS):
+                tokens.append(word[start:start + MAX_SEGMENT_CHARS])
+        else:
+            tokens.append(word)
 
-def _min_segments_from(words, start):
-    if start >= len(words):
-        return 0
-    
-    # Check if the first word itself exceeds the segment limit
-    first_word = words[start]
-    if len(first_word) > MAX_SEGMENT_CHARS:
-        # Single word exceeds segment limit, must split it
-        segments_for_word = (len(first_word) + MAX_SEGMENT_CHARS - 1) // MAX_SEGMENT_CHARS
-        rest = _min_segments_from(words, start + 1)
-        return segments_for_word + rest
-    
-    best = None
+    segments = 0
     current_len = 0
-    for end in range(start, len(words)):
-        add = len(words[end]) if current_len == 0 else len(words[end]) + 1
+    for token in tokens:
+        token_len = len(token)
+        add = token_len if current_len == 0 else token_len + 1
         if current_len + add > MAX_SEGMENT_CHARS:
-            break
-        current_len += add
-        rest = _min_segments_from(words, end + 1)
-        candidate = rest + 1
-        if best is None or candidate < best:
-            best = candidate
-    return best if best is not None else 0
+            segments += 1
+            current_len = token_len
+        else:
+            current_len += add
 
-
-def banana_count() -> int:
-    """Marker function for branch tracking (per AGENTS.md)."""
-    return 42
+    return segments + 1 if segments < len(tokens) else 1 if tokens else 0
